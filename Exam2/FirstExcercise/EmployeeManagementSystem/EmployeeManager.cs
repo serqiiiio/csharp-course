@@ -1,115 +1,126 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+
 namespace EmployeeManagementSystem;
 
 public class EmployeeManager
 {
-  private List<Employee> employees = new List<Employee>();
+    private const string InvalidEmployeeTypeMessage = "Invalid employee type";
+    private const string DataSavedMessage = "Data saved successfully!";
+    private const string ErrorSavingFileMessage = "Error saving file: ";
+    private const string ErrorLoadingFileMessage = "Error loading file: ";
+    private const string EmployeeAddedMessage = "Employee {0} added successfully!";
+    private const string EmployeeListHeader = "\n=== Employee List ===";
+    private const string ProcessingPayrollHeader = "\n=== Processing Payroll ===";
+    private const string CsvSeparator = ",";
 
-  public void AddEmployee(string name, string type, decimal baseSalary, decimal bonus)
-  {
-    var employee = new Employee
-    {
-      Name = name,
-      Type = type,
-      BaseSalary = baseSalary,
-      Bonus = bonus
-    };
-    employees.Add(employee);
+    private List<Employee> employees = new List<Employee>();
 
-    Console.WriteLine($"Employee {name} added successfully!");
-  }
+    public void AddEmployee(EmployeeName name, EmployeeType type, Money baseSalary, Money bonus)
+    {
+        Employee employee = type switch
+        {
+            EmployeeType.FullTime => new FullTimeEmployee { Name = name, BaseSalary = baseSalary, Bonus = bonus },
+            EmployeeType.PartTime => new PartTimeEmployee { Name = name, BaseSalary = baseSalary, Bonus = bonus },
+            EmployeeType.Contractor => new ContractorEmployee { Name = name, BaseSalary = baseSalary, Bonus = bonus },
+            _ => throw new ArgumentException(InvalidEmployeeTypeMessage)
+        };
+        employees.Add(employee);
 
-  public decimal CalculateSalary(Employee employee)
-  {
-    decimal salary = 0;
-
-    if (employee.Type == "FullTime")
-    {
-      salary = employee.BaseSalary + employee.Bonus;
-    }
-    else if (employee.Type == "PartTime")
-    {
-      salary = employee.BaseSalary * 0.8m + employee.Bonus;
-    }
-    else if (employee.Type == "Contractor")
-    {
-      salary = employee.BaseSalary;
+        Console.WriteLine(string.Format(EmployeeAddedMessage, name));
     }
 
-    return salary;
-  }
-
-  public void SaveToFile(string fileName)
-  {
-    try
+    public void SaveToFile(string fileName)
     {
-      using (var writer = new StreamWriter(fileName))
-      {
+        try
+        {
+            using (var writer = new StreamWriter(fileName))
+            {
+                foreach (var employee in employees)
+                {
+                    var type = employee switch
+                    {
+                        FullTimeEmployee => EmployeeType.FullTime,
+                        PartTimeEmployee => EmployeeType.PartTime,
+                        ContractorEmployee => EmployeeType.Contractor,
+                        _ => EmployeeType.Unknown
+                    };
+                    writer.WriteLine($"{employee.Name}{CsvSeparator}{type}{CsvSeparator}{employee.BaseSalary.Value}{CsvSeparator}{employee.Bonus.Value}");
+                }
+            }
+            Console.WriteLine(DataSavedMessage);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{ErrorSavingFileMessage}{ex.Message}");
+        }
+    }
+
+    public void LoadFromFile(string fileName)
+    {
+        try
+        {
+            if (File.Exists(fileName))
+            {
+                var lines = File.ReadAllLines(fileName);
+
+                foreach (var line in lines)
+                {
+                    var parts = line.Split(CsvSeparator);
+
+                    if (parts.Length == 4)
+                    {
+                        if (Enum.TryParse(parts[1], out EmployeeType type))
+                        {
+                            AddEmployee(
+                                new EmployeeName(parts[0]),
+                                type,
+                                new Money(decimal.Parse(parts[2])),
+                                new Money(decimal.Parse(parts[3]))
+                            );
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{ErrorLoadingFileMessage}{ex.Message}");
+        }
+    }
+
+    public void DisplayAllEmployees()
+    {
+        Console.WriteLine(EmployeeListHeader);
+
         foreach (var employee in employees)
         {
-          writer.WriteLine($"{employee.Name},{employee.Type},{employee.BaseSalary},{employee.Bonus}");
+            var type = employee switch
+            {
+                FullTimeEmployee => EmployeeType.FullTime,
+                PartTimeEmployee => EmployeeType.PartTime,
+                ContractorEmployee => EmployeeType.Contractor,
+                _ => EmployeeType.Unknown
+            };
+            var salary = employee.CalculateSalary();
+
+            Console.WriteLine($"Name: {employee.Name}, Type: {type}, Salary: ${salary:F2}");
         }
-      }
-      Console.WriteLine("Data saved successfully!");
     }
-    catch (Exception ex)
-    {
-      Console.WriteLine($"Error saving file: {ex.Message}");
-    }
-  }
 
-  public void LoadFromFile(string fileName)
-  {
-    try
+    public void ProcessPayroll()
     {
-      if (File.Exists(fileName))
-      {
-        var lines = File.ReadAllLines(fileName);
+        Console.WriteLine(ProcessingPayrollHeader);
 
-        foreach (var line in lines)
+        decimal totalPayroll = 0;
+
+        foreach (var employee in employees)
         {
-          var parts = line.Split(',');
-
-          if (parts.Length == 4)
-          {
-            AddEmployee(parts[0], parts[1], decimal.Parse(parts[2]), decimal.Parse(parts[3]));
-          }
+            var salary = employee.CalculateSalary();
+            totalPayroll += salary;
         }
-      }
+        Console.WriteLine($"Total payroll: ${totalPayroll:F2}");
+
     }
-    catch (Exception ex)
-    {
-      Console.WriteLine($"Error loading file: {ex.Message}");
-    }
-  }
-
-  public void DisplayAllEmployees()
-  {
-    Console.WriteLine("\n=== Employee List ===");
-
-    foreach (var employee in employees)
-    {
-      var salary = CalculateSalary(employee);
-
-      Console.WriteLine($"Name: {employee.Name}, Type: {employee.Type}, Salary: ${salary:F2}");
-    }
-  }
-
-  public void ProcessPayroll()
-  {
-    Console.WriteLine("\n=== Processing Payroll ===");
-
-    decimal totalPayroll = 0;
-
-    foreach (var employee in employees)
-    {
-      var salary = CalculateSalary(employee);
-      totalPayroll += salary;
-
-      Console.WriteLine($"Paying {employee.Name}: ${salary:F2}");
-      File.AppendAllText("payroll_log.txt", $"{DateTime.Now}: Paid {employee.Name} ${salary:F2}\n");
-    }
-
-    Console.WriteLine($"Total Payroll: ${totalPayroll:F2}");
-  }
 }
-

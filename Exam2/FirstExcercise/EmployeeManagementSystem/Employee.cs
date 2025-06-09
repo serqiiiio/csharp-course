@@ -1,9 +1,25 @@
-namespace EmployeeManagementSystem;
+﻿namespace EmployeeManagementSystem;
 
-public class Employee
+public abstract class Employee
 {
-  public string Name { get; set; }
-  public string Type { get; set; }
-  public decimal BaseSalary { get; set; }
-  public decimal Bonus { get; set; }
+    public EmployeeName Name { get; set; }
+    public Money BaseSalary { get; set; }
+    public Money Bonus { get; set; }
+    public abstract decimal CalculateSalary();
+}
+
+public class FullTimeEmployee : Employee
+{
+    public override decimal CalculateSalary() => BaseSalary + Bonus;
+}
+
+public class PartTimeEmployee : Employee
+{
+    private const decimal PartTimeSalaryMultiplier = 0.8m;
+    public override decimal CalculateSalary() => BaseSalary * PartTimeSalaryMultiplier + Bonus;
+}
+
+public class ContractorEmployee : Employee
+{
+    public override decimal CalculateSalary() => BaseSalary;
 }

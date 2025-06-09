@@ -1,26 +1,19 @@
 namespace ShoppingCartSystem;
 
-public class DigitalProduct : IProduct
+public class DigitalProduct : IProduct, IDownloadable
 {
-  public string Name { get; set; }
-  public decimal Price { get; set; }
-  public int Stock { get; set; } = int.MaxValue;
-  public bool IsPhysical => false;
-  public decimal Weight { get; set; }
-  public string DownloadUrl { get; set; }
+    private const int UnlimitedStock = int.MaxValue;
+    private const decimal DigitalProductWeight = 0m;
 
-  public void Ship()
-  {
-    throw new InvalidOperationException("Cannot ship digital products!");
-  }
+    public string Name { get; set; }
+    public decimal Price { get; set; }
+    public int Stock { get; set; } = UnlimitedStock;
+    public bool IsPhysical => false;
+    public decimal Weight => DigitalProductWeight;
+    public string DownloadUrl { get; set; }
 
-  public void Download()
-  {
-    Console.WriteLine($"Downloading {Name} from {DownloadUrl}");
-  }
-
-  public decimal CalculateShippingCost()
-  {
-    return 0;
-  }
+    public void Download()
+    {
+        Console.WriteLine($"Downloading {Name} from {DownloadUrl}");
+    }
 }

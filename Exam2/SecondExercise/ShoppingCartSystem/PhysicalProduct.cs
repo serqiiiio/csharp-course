@@ -1,32 +1,26 @@
 namespace ShoppingCartSystem;
 
-public class PhysicalProduct : IProduct
+public class PhysicalProduct : IProduct, IShippable
 {
-  public string Name { get; set; }
-  public decimal Price { get; set; }
-  public int Stock { get; set; }
-  public bool IsPhysical => true;
-  public decimal Weight { get; set; }
-  public string DownloadUrl { get; set; }
+    private const decimal BaseShippingRate = 5.0m;
+    private const decimal WeightShippingRate = 2.0m;
+    private const string OutOfStockMessage = "Out of stock!";
 
-  public void Ship()
-  {
-    if (Stock <= 0)
+    public string Name { get; set; }
+    public decimal Price { get; set; }
+    public int Stock { get; set; }
+    public bool IsPhysical => true;
+    public decimal Weight { get; set; }
+
+    public void Ship()
     {
-      throw new InvalidOperationException("Product out of stock!");
+        if (Stock <= 0)
+            throw new InvalidOperationException(OutOfStockMessage);
+        Stock--;
     }
 
-    Console.WriteLine($"Shipping {Name}");
-    Stock--;
-  }
-
-  public void Download()
-  {
-    throw new InvalidOperationException("Cannot download physical products!");
-  }
-
-  public decimal CalculateShippingCost()
-  {
-    return Weight * 2.5m;
-  }
+    public decimal CalculateShippingCost()
+    {
+        return BaseShippingRate + (Weight * WeightShippingRate);
+    }
 }
